@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+
+'''
+This script parses the cmake information in the build directory and creates a 
+project file in the source directory
+'''
+
+
+import sys
+import os
+import os.path
+import argparse
+import re
+import platform
+#from subprocess import Popen, call, PIPE, STDOUT
+#import matplotlib.pyplot as plt
+#import numpy as np
+#import srw
+#import pyfits
+#from ppgplot import *
+
+
+
+class FileParser(object):
+    def __init__(self, filename):
+        super(FileParser, self).__init__()
+
+        self.filename = filename
+
+        with open(self.filename, 'r') as f:
+            self.lines = f.readlines()
+
+        cleanLines = self.cleanLines(self.lines)
+
+        self.paths = self.getCorrectFunction(cleanLines)
+
+
+    def cleanLines(self, lines):
+        lines = filter(lambda line: '#' not in line, lines)
+        longstring = ''.join(lines)
+        longstring = longstring.strip().replace('\n', '')
+        return longstring
+
+    def getCorrectFunction(self, text):
+        matches = re.search('.*SET\(CMAKE_C_INCLUDE_PATH(.*?)\)', text)
+        paths = matches.group(1).replace('"', '').split()
+        return paths
+
+
+
+
+class App(object):
+    '''
+    Main application object for the project
+    '''
+    def __init__(self, args):
+        '''
+        Constructor
+        '''
+        super(App, self).__init__()
+        self.args = args
+
+        # the filename in the build directory 
+        self.parsefile = os.path.join(self.args.builddir, "CMakeFiles", "CMakeDirectoryInformation.cmake")
+        if not os.path.isfile(self.parsefile):
+            raise IOError("Cannot find cmake file, have you run cmake yet?")
+
+        self.run()
+
+
+        self.skeleton = '''{
+    "folders":
+    [
+        {
+            "path": "%s"
+        }
+    ],
+    "settings":
+    {
+        "sublimeclang_options":
+        [
+            "-Wall",
+            "-I/home/astro/phrfbf/build/gcc/lib/gcc/x86_64-unknown-linux-gnu/4.6.2/include",
+            "-I/home/astro/phrfbf/build/clang/lib/clang/3.1/include",
+            "-I/Volumes/Callahan/build/gcc/lib/gcc/x86_64-unknown-linux-gnu/4.6.2/include",
+            "-I/Volumes/Callahan/build/clang/lib/clang/3.1/include",
+            "-I/home/astro/phrfbf/build/include",
+            "-I/Users/simon/build/include",
+            %s
+        ]
+    }
+
+}
+''' % (self.args.sourcedir, ',\n\t\t'.join(['"-I%s"' % path for path in self.fullPaths]))
+
+        
+        with open(self.stubName(self.args.output), 'w') as f:
+            f.write(self.skeleton)
+
+    def stubName(self, name):
+        '''
+        Formats the name to remove extensions and appends
+        .sublime-project to the end
+        '''
+        return os.path.splitext(name)[0] + ".sublime-project"
+
+
+    def run(self):
+        '''
+        Main function
+        '''
+        print "Running from source directory '%s'" % self.args.sourcedir
+
+        parser = FileParser(self.parsefile)
+        paths = parser.paths
+
+
+        # now construct the full paths
+        self.fullPaths = [os.path.abspath(os.path.join(self.args.builddir, path)) for path in paths]
+
+        # If on osx, import the clang path
+        systemVersion = platform.system().upper()
+        if systemVersion == "DARWIN":
+            # Running on mac os x
+            self.fullPaths.append("/usr/lib/clang/2.1/include")
+
+
+
+
+if __name__ == '__main__':
+    try:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-b', '--builddir', help='Build directory',
+            required=True, type=str)
+        parser.add_argument('-s', '--sourcedir', help='Source directory',
+            required=False, type=str, default=os.getcwd())
+        parser.add_argument('-o', '--output', help='Name of project file',
+            required=True, type=str)
+        args = parser.parse_args()
+        app = App(args)
+    except KeyboardInterrupt:
+        print >> sys.stderr, "Interrupt caught, exiting..."
+        sys.exit(0)
