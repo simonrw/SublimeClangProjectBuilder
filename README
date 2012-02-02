@@ -1,10 +1,49 @@
-# Readme for project by Simon Walker
+# Readme
 
 ## Description
 
+The script contains the code to create a [SublimeClang][1] project file
+for the [Sublime Text 2][2] editor. It allows for automatic parsing of 
+the [CMake][3] path files to get the required include paths for the 
+clang compiler.
 
+**WARNING**: This code is incredibly loosely held together and not 
+tested. I had great dreams of writing proper OO code with unit tests,
+but I should have been doing something else that day, so I present it 
+here 'as is'.
 
 ## Requirements
 
+* [Python][4]
+* CMake
+* Sublime Text 2
+* [clang][5]
+* A cmake project
+
+## Usage
+
+The script takes a source directory (defaults to the current directory if not given),
+the "out of source" build directory and an output stub. The project file will be 
+located at `output_stub`.sublime-project. 
+
+    usage: SublimeProjectFileCreator [-h] -b BUILDDIR [-s SOURCEDIR] -o OUTPUT
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -b BUILDDIR, --builddir BUILDDIR
+                            Build directory
+      -s SOURCEDIR, --sourcedir SOURCEDIR
+                            Source directory
+      -o OUTPUT, --output OUTPUT
+                            Name of project file
 
 
+
+
+
+
+[1]: https://github.com/quarnster/SublimeClang "SublimeClang Github page"
+[2]: http://www.sublimetext.com/2 "Sublime Text 2"
+[3]: http://www.cmake.org "CMake homepage"
+[4]: http://www.python.org "Python homepage"
+[5]: http://clang.llvm.org "Clang homepage"
